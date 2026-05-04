@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── GEN_USR | USUARIO ───────────────────────────────────────
+model GEN_USR {
+  ID_USR    String   @id @db.Char(8)
+  NOM_USR   String   @db.VarChar(100)
+  EMAIL_USR String   @unique @db.VarChar(150)
+  PWD_USR   String   @db.VarChar(255)
+  ROL_USR   String   @db.VarChar(20)
+  ACT_USR   Boolean  @default(true)
+  FEC_CRE   DateTime @default(now())
+  FEC_ACT   DateTime @updatedAt
+
+  pedidos_creados VEN_PED[] @relation("PedidoCreadoPor")
+  entregas_reg    VEN_ENT[] @relation("EntregaRegistradaPor")
+  pagos_reg       VEN_PAG[] @relation("PagoRegistradoPor")
+
+  @@map("GEN_USR")
+}
+
+// ─── VEN_CLI | CLIENTE ───────────────────────────────────────
+model VEN_CLI {
+  ID_CLI      String   @id @db.Char(8)
+  NOM_CLI     String   @db.VarChar(150)
+  REF_CLI     String?  @db.VarChar(200)
+  TEL_CLI     String?  @db.VarChar(20)
+  DIR_CLI     String?  @db.VarChar(250)
+  LIM_MON_CLI Decimal? @db.Decimal(10, 2)
+  LIM_DIA_CLI Int?
+  ACT_CLI     Boolean  @default(true)
+  FEC_CRE     DateTime @default(now())
+  FEC_ACT     DateTime @updatedAt
+
+  precios_pactados VEN_PPC[]
+  pedidos          VEN_PED[]
+  entregas         VEN_ENT[]
+  pagos            VEN_PAG[]
+
+  @@map("VEN_CLI")
+}
+
+// ─── VEN_CAT_PRD | CATEGORIA_PRODUCTO ────────────────────────
+model VEN_CAT_PRD {
+  ID_CAT  Int     @id @default(autoincrement())
+  NOM_CAT String  @db.VarChar(100)
+  DES_CAT String? @db.VarChar(300)
+
+  productos VEN_PRD[]
+
+  @@map("VEN_CAT_PRD")
+}
+
+// ─── VEN_PRD | PRODUCTO ──────────────────────────────────────
+model VEN_PRD {
+  ID_PRD  Int      @id @default(autoincrement())
+  ID_CAT  Int?
+  NOM_PRD String   @db.VarChar(150)
+  PRC_STD Decimal  @db.Decimal(10, 2)
+  ACT_PRD Boolean  @default(true)
+  FEC_CRE DateTime @default(now())
+  FEC_ACT DateTime @updatedAt
+
+  categoria        VEN_CAT_PRD?  @relation(fields: [ID_CAT], references: [ID_CAT])
+  precios_pactados VEN_PPC[]
+  detalles_pedido  VEN_DET_PED[]
+  detalles_entrega VEN_DET_ENT[]
+  cambios          VEN_CAM[]
+
+  @@map("VEN_PRD")
+}
+
+// ─── VEN_PPC | PRECIO_PACTADO ────────────────────────────────
+model VEN_PPC {
+  ID_CLI  String   @db.Char(8)
+  ID_PRD  Int
+  PRC_PPC Decimal  @db.Decimal(10, 2)
+  FEC_INI DateTime @default(now()) @db.Date
+  ACT_PPC Boolean  @default(true)
+
+  @@id([ID_CLI, ID_PRD, FEC_INI])
+
+  cliente  VEN_CLI @relation(fields: [ID_CLI], references: [ID_CLI])
+  producto VEN_PRD @relation(fields: [ID_PRD], references: [ID_PRD])
+
+  @@map("VEN_PPC")
+}
+
+// ─── VEN_PED | PEDIDO ────────────────────────────────────────
+model VEN_PED {
+  ID_PED      Int      @id @default(autoincrement())
+  ID_CLI      String   @db.Char(8)
+  ID_USR_CRE  String   @db.Char(8)
+  FEC_ENT_PED DateTime @db.Date
+  TUR_PED     String   @db.VarChar(6)
+  EST_PED     String   @default("PENDIENTE") @db.VarChar(20)
+  FEC_CRE     DateTime @default(now())
+  FEC_ACT     DateTime @updatedAt
+
+  cliente    VEN_CLI       @relation(fields: [ID_CLI], references: [ID_CLI])
+  creado_por GEN_USR       @relation("PedidoCreadoPor", fields: [ID_USR_CRE], references: [ID_USR])
+  detalles   VEN_DET_PED[]
+  entrega    VEN_ENT?
+
+  @@index([ID_CLI, FEC_ENT_PED])
+  @@index([EST_PED])
+  @@map("VEN_PED")
+}
+
+// ─── VEN_DET_PED | DETALLE_PEDIDO ────────────────────────────
+model VEN_DET_PED {
+  ID_DET_PED Int     @id @default(autoincrement())
+  ID_PED     Int
+  ID_PRD     Int
+  CAN        Int
+  PRC_UNI    Decimal @db.Decimal(10, 2)
+
+  pedido   VEN_PED @relation(fields: [ID_PED], references: [ID_PED], onDelete: Cascade)
+  producto VEN_PRD @relation(fields: [ID_PRD], references: [ID_PRD])
+
+  @@index([ID_PED])
+  @@map("VEN_DET_PED")
+}
+
+// ─── VEN_ENT | ENTREGA ───────────────────────────────────────
+model VEN_ENT {
+  ID_ENT     Int      @id @default(autoincrement())
+  ID_PED     Int?     @unique
+  ID_CLI     String   @db.Char(8)
+  ID_USR_REG String   @db.Char(8)
+  FEC_ENT    DateTime @db.Date
+  TUR_ENT    String   @db.VarChar(6)
+  EST_ENT    String   @default("CONFIRMADA") @db.VarChar(20)
+  TOT_ENT    Decimal  @default(0) @db.Decimal(10, 2)
+  OBS_ENT    String?
+  FEC_CRE    DateTime @default(now())
+  FEC_ACT    DateTime @updatedAt
+
+  pedido         VEN_PED?      @relation(fields: [ID_PED], references: [ID_PED])
+  cliente        VEN_CLI       @relation(fields: [ID_CLI], references: [ID_CLI])
+  registrado_por GEN_USR       @relation("EntregaRegistradaPor", fields: [ID_USR_REG], references: [ID_USR])
+  detalles       VEN_DET_ENT[]
+  cambios        VEN_CAM[]
+  pagos          VEN_PAG[]
+
+  @@index([ID_CLI, FEC_ENT])
+  @@map("VEN_ENT")
+}
+
+// ─── VEN_DET_ENT | DETALLE_ENTREGA ───────────────────────────
+model VEN_DET_ENT {
+  ID_DET_ENT Int     @id @default(autoincrement())
+  ID_ENT     Int
+  ID_PRD     Int
+  CAN        Int
+  PRC_UNI    Decimal @db.Decimal(10, 2)
+  SUB_TOT    Decimal @db.Decimal(10, 2)
+
+  entrega  VEN_ENT @relation(fields: [ID_ENT], references: [ID_ENT], onDelete: Cascade)
+  producto VEN_PRD @relation(fields: [ID_PRD], references: [ID_PRD])
+
+  @@index([ID_ENT])
+  @@map("VEN_DET_ENT")
+}
+
+// ─── VEN_CAM | CAMBIO ────────────────────────────────────────
+model VEN_CAM {
+  ID_CAM  Int      @id @default(autoincrement())
+  ID_ENT  Int
+  ID_PRD  Int
+  CAN     Int
+  FEC_CAM DateTime @db.Date
+  OBS_CAM String?
+  FEC_CRE DateTime @default(now())
+
+  entrega  VEN_ENT @relation(fields: [ID_ENT], references: [ID_ENT])
+  producto VEN_PRD @relation(fields: [ID_PRD], references: [ID_PRD])
+
+  @@index([ID_ENT])
+  @@map("VEN_CAM")
+}
+
+// ─── VEN_PAG | PAGO ──────────────────────────────────────────
+model VEN_PAG {
+  ID_PAG     Int      @id @default(autoincrement())
+  ID_CLI     String   @db.Char(8)
+  ID_USR_REG String   @db.Char(8)
+  ID_ENT     Int?
+  MON_PAG    Decimal  @db.Decimal(10, 2)
+  MET_PAG    String   @db.VarChar(20)
+  FEC_PAG    DateTime @db.Date
+  OBS_PAG    String?
+  FEC_CRE    DateTime @default(now())
+
+  cliente        VEN_CLI  @relation(fields: [ID_CLI], references: [ID_CLI])
+  registrado_por GEN_USR  @relation("PagoRegistradoPor", fields: [ID_USR_REG], references: [ID_USR])
+  entrega        VEN_ENT? @relation(fields: [ID_ENT], references: [ID_ENT])
+
+  @@index([ID_CLI])
+  @@index([ID_ENT])
+  @@map("VEN_PAG")
+}
