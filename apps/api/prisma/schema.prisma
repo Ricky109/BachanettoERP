@@ -34,6 +34,7 @@ model VEN_CLI {
   DIR_CLI     String?  @db.VarChar(250)
   LIM_MON_CLI Decimal? @db.Decimal(10, 2)
   LIM_DIA_CLI Int?
+  TIP_CLI     String   @default("EXTERNO") @db.VarChar(20)
   ACT_CLI     Boolean  @default(true)
   FEC_CRE     DateTime @default(now())
   FEC_ACT     DateTime @updatedAt
@@ -72,7 +73,7 @@ model VEN_PRD {
   detalles_pedido  VEN_DET_PED[]
   detalles_entrega VEN_DET_ENT[]
   cambios          VEN_CAM[]
-
+  detalles_salida  VEN_DET_SAL[]
   @@map("VEN_PRD")
 }
 
@@ -159,6 +160,7 @@ model VEN_DET_ENT {
   ID_ENT     Int
   ID_PRD     Int
   CAN        Int
+  CAN_CAM    Int     @default(0)
   PRC_UNI    Decimal @db.Decimal(10, 2)
   SUB_TOT    Decimal @db.Decimal(10, 2)
 
@@ -205,4 +207,30 @@ model VEN_PAG {
   @@index([ID_CLI])
   @@index([ID_ENT])
   @@map("VEN_PAG")
+}
+
+// ─── VEN_SAL | SALIDA ────────────────────────────────────────
+model VEN_SAL {
+  ID_SAL  Int      @id @default(autoincrement())
+  FEC_SAL DateTime @db.Date
+  TUR_SAL String   @db.VarChar(6)
+  FEC_CRE DateTime @default(now())
+
+  detalles VEN_DET_SAL[]
+
+  @@unique([FEC_SAL, TUR_SAL])
+  @@map("VEN_SAL")
+}
+
+model VEN_DET_SAL {
+  ID_DET_SAL Int @id @default(autoincrement())
+  ID_SAL     Int
+  ID_PRD     Int
+  CAN_SAL    Int
+
+  salida   VEN_SAL @relation(fields: [ID_SAL], references: [ID_SAL], onDelete: Cascade)
+  producto VEN_PRD @relation(fields: [ID_PRD], references: [ID_PRD])
+
+  @@index([ID_SAL])
+  @@map("VEN_DET_SAL")
 }

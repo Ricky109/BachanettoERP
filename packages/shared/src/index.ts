@@ -33,8 +33,8 @@ export const EstadoPedidoLabel: Record<EstadoPedido, string> = {
 
 // Estados de la entrega
 export const EstadoEntrega = {
-  CONFIRMADA:    'CONFIRMADA',
-  PEND_REGISTRO: 'PEND_REGISTRO',
+  PENDIENTE:  'PENDIENTE',
+  CONFIRMADA: 'CONFIRMADA',
 } as const;
 export type EstadoEntrega = (typeof EstadoEntrega)[keyof typeof EstadoEntrega];
 
@@ -147,4 +147,73 @@ export interface ProductoPactado {
   NOM_PRD:     string;
   PRC_UNI:     string;   // precio pactado o estándar
   precio_nuevo: boolean; // true = no tenía precio pactado
+}
+
+// ── Entregas ───────────────────────────────────────────────
+
+export const EstadoEntregaLabel: Record<EstadoEntrega, string> = {
+  PENDIENTE:  'Pendiente',
+  CONFIRMADA: 'Confirmada',
+}
+
+export interface DetalleEntregaItem {
+  ID_PRD:    number
+  NOM_PRD:   string
+  CAN:       number
+  CAN_CAM:   number   // cambios/devoluciones
+  PRC_UNI:   string
+  SUB_TOT:   string
+}
+
+export interface Entrega {
+  ID_ENT:    number
+  ID_PED:    number | null
+  ID_CLI:    string
+  NOM_CLI:   string
+  ID_USR_REG: string
+  NOM_USR_REG: string
+  FEC_ENT:   string
+  TUR_ENT:   string
+  EST_ENT:   EstadoEntrega
+  TOT_ENT:   string
+  OBS_ENT:   string | null
+  FEC_CRE:   string
+  FEC_ACT:   string
+  detalles:  DetalleEntregaItem[]
+}
+
+export interface CreateDetalleEntregaDto {
+  ID_PRD:  number
+  CAN:     number
+  CAN_CAM: number
+  PRC_UNI: number
+}
+
+export interface CreateEntregaDto {
+  ID_PED?:  number
+  ID_CLI:   string
+  FEC_ENT:  string
+  TUR_ENT:  string
+  OBS_ENT?: string
+  detalles: CreateDetalleEntregaDto[]
+}
+
+// ── Salidas ────────────────────────────────────────────────
+
+export interface SalidaItem {
+  ID_PRD:  number
+  NOM_PRD: string
+  CAN_SAL: number
+}
+
+export interface Salida {
+  FEC_SAL: string
+  TUR_SAL: string
+  items:   SalidaItem[]
+}
+
+export interface CreateSalidaDto {
+  FEC_SAL: string
+  TUR_SAL: string
+  items:   { ID_PRD: number; CAN_SAL: number }[]
 }
