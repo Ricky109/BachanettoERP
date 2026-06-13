@@ -11,7 +11,7 @@ export type { Pedido, ProductoPactado }
 
 export const pedidosService = {
 
-  async listar(params?: { fecha?: string; search?: string }): Promise<Pedido[]> {
+  async listar(params?: { fecha?: string; fechaRegistro?: string; search?: string }): Promise<Pedido[]> {
     const { data } = await http.get('/pedidos', { params })
     return data.data
   },

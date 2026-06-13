@@ -139,11 +139,20 @@
           <div class="form-header-fields">
             <div class="field">
               <label class="field-label">Fecha</label>
-              <input v-model="formCarga.FEC_SAL" type="date" class="field-input" />
+              <input
+                v-model="formCarga.FEC_SAL"
+                type="date"
+                class="field-input"
+                @change="cargarProductosCargaDesdePedidos"
+              />
             </div>
             <div class="field">
               <label class="field-label">Turno</label>
-              <select v-model="formCarga.TUR_SAL" class="field-input">
+              <select
+                v-model="formCarga.TUR_SAL"
+                class="field-input"
+                @change="cargarProductosCargaDesdePedidos"
+              >
                 <option value="MANANA">Mañana</option>
                 <option value="TARDE">Tarde</option>
               </select>
@@ -172,14 +181,20 @@
             </div>
           </div>
 
-          <div v-if="lineasCarga.length === 0" class="state-msg">
-            Agrega productos para registrar la carga.
+          <div v-if="loadingPedidosCarga" class="state-msg">
+            Cargando pedidos pendientes...
+          </div>
+
+          <div v-else-if="lineasCarga.length === 0" class="state-msg">
+            No hay pedidos pendientes para esta fecha y turno.
           </div>
 
           <div v-else class="lineas-list">
             <div class="lineas-header lineas-header--carga">
               <span>Producto</span>
-              <span>Cantidad</span>
+              <span>Pedido</span>
+              <span>Excedente</span>
+              <span>Total</span>
               <span></span>
             </div>
             <div
@@ -188,12 +203,14 @@
               class="linea-row linea-row--carga"
             >
               <span class="linea-nombre">{{ linea.NOM_PRD }}</span>
+              <span class="linea-centro">{{ linea.CAN_PED }}</span>
               <input
-                v-model.number="linea.CAN_SAL"
+                v-model.number="linea.CAN_EXC"
                 type="number"
-                min="1"
+                min="0"
                 class="field-input linea-input"
               />
+              <span class="linea-centro">{{ totalLineaCarga(linea) }}</span>
               <button class="btn-remove" @click="quitarLineaCarga(i)">✕</button>
             </div>
           </div>
@@ -207,7 +224,7 @@
           <button class="btn-cancel" @click="cerrarModalCarga">Cancelar</button>
           <button
             class="btn-submit"
-            :disabled="store.loadingCarro || lineasCarga.length === 0"
+            :disabled="store.loadingCarro || loadingPedidosCarga || lineasCargaConSalida.length === 0"
             @click="confirmarCarga"
           >
             {{ store.loadingCarro ? 'Guardando...' : 'Registrar carga' }}
@@ -256,13 +273,13 @@
                   class="cliente-option"
                   @click="seleccionarCliente(cli)"
                 >
-                  <span class="cliente-nombre">{{ cli.NOM_CLI }}</span>
+                  <span class="cliente-nombre">{{ nombreConReferencia(cli) }}</span>
                   <span class="cliente-dni">{{ cli.ID_CLI }}</span>
                 </li>
               </ul>
             </div>
             <div v-else class="cliente-seleccionado">
-              <span>{{ clienteSeleccionado.NOM_CLI }}</span>
+              <span>{{ nombreConReferencia(clienteSeleccionado) }}</span>
               <button class="btn-clear" @click="limpiarCliente">✕</button>
             </div>
           </div>
@@ -528,20 +545,31 @@ onMounted(() => cargarDatos())
 interface LineaCarga {
   ID_PRD:  number
   NOM_PRD: string
-  CAN_SAL: number
+  CAN_PED: number
+  CAN_EXC: number
 }
 
 const modalCargaAbierto      = ref(false)
 const lineasCarga            = ref<LineaCarga[]>([])
 const busquedaProductoCarga  = ref('')
 const resultadosProductoCarga = ref<Producto[]>([])
+const loadingPedidosCarga    = ref(false)
 
 const formCarga = ref({ FEC_SAL: hoyISO(), TUR_SAL: 'MANANA' })
 
-function abrirModalCarga() {
+const lineasCargaConSalida = computed(() =>
+  lineasCarga.value.filter(l => totalLineaCarga(l) > 0)
+)
+
+function totalLineaCarga(linea: LineaCarga): number {
+  return Number(linea.CAN_PED || 0) + Number(linea.CAN_EXC || 0)
+}
+
+async function abrirModalCarga() {
   formCarga.value = { FEC_SAL: fechaFiltro.value, TUR_SAL: turnoActivo.value }
   lineasCarga.value = []
   modalCargaAbierto.value = true
+  await cargarProductosCargaDesdePedidos()
 }
 
 function cerrarModalCarga() {
@@ -549,6 +577,41 @@ function cerrarModalCarga() {
   lineasCarga.value = []
   busquedaProductoCarga.value = ''
   resultadosProductoCarga.value = []
+}
+
+async function cargarProductosCargaDesdePedidos() {
+  if (!formCarga.value.FEC_SAL || !formCarga.value.TUR_SAL) return
+
+  loadingPedidosCarga.value = true
+  try {
+    const pedidos = await pedidosService.listar({ fecha: formCarga.value.FEC_SAL })
+    const acumulados = new Map<number, LineaCarga>()
+
+    for (const pedido of pedidos) {
+      if (pedido.TUR_PED !== formCarga.value.TUR_SAL || pedido.EST_PED !== 'PENDIENTE') continue
+
+      for (const detalle of pedido.detalles) {
+        const actual = acumulados.get(detalle.ID_PRD)
+        if (actual) {
+          actual.CAN_PED += detalle.CAN
+        } else {
+          acumulados.set(detalle.ID_PRD, {
+            ID_PRD: detalle.ID_PRD,
+            NOM_PRD: detalle.NOM_PRD,
+            CAN_PED: detalle.CAN,
+            CAN_EXC: 0,
+          })
+        }
+      }
+    }
+
+    lineasCarga.value = Array.from(acumulados.values())
+      .sort((a, b) => a.NOM_PRD.localeCompare(b.NOM_PRD))
+  } catch {
+    lineasCarga.value = []
+  } finally {
+    loadingPedidosCarga.value = false
+  }
 }
 
 let debounceCarga: ReturnType<typeof setTimeout>
@@ -566,7 +629,7 @@ function onBuscarProductoCarga() {
 }
 
 function agregarProductoCarga(prod: Producto) {
-  lineasCarga.value.push({ ID_PRD: prod.ID_PRD, NOM_PRD: prod.NOM_PRD, CAN_SAL: 0 })
+  lineasCarga.value.push({ ID_PRD: prod.ID_PRD, NOM_PRD: prod.NOM_PRD, CAN_PED: 0, CAN_EXC: 0 })
   busquedaProductoCarga.value = ''
   resultadosProductoCarga.value = []
 }
@@ -576,11 +639,11 @@ function quitarLineaCarga(i: number) {
 }
 
 async function confirmarCarga() {
-  if (lineasCarga.value.length === 0) return
+  if (lineasCargaConSalida.value.length === 0) return
   const ok = await store.registrarSalida({
     FEC_SAL: formCarga.value.FEC_SAL,
     TUR_SAL: formCarga.value.TUR_SAL,
-    items:   lineasCarga.value.map(l => ({ ID_PRD: l.ID_PRD, CAN_SAL: l.CAN_SAL })),
+    items:   lineasCargaConSalida.value.map(l => ({ ID_PRD: l.ID_PRD, CAN_SAL: totalLineaCarga(l) })),
   })
   if (ok) {
     cerrarModalCarga()
@@ -627,6 +690,11 @@ const totalEntrega = computed(() => {
 
 function subtotalLinea(linea: LineaEntrega): string {
   return ((linea.CAN - linea.CAN_CAM) * linea.PRC_UNI).toFixed(2)
+}
+
+function nombreConReferencia(cliente: Cliente): string {
+  const referencia = cliente.REF_CLI?.trim()
+  return referencia ? `${cliente.NOM_CLI} - (${referencia})` : cliente.NOM_CLI
 }
 
 function abrirModalEntrega() {
@@ -1183,7 +1251,7 @@ function badgeClass(estado: string) {
 }
 
 .lineas-header--carga {
-  grid-template-columns: 1fr 90px 32px;
+  grid-template-columns: 1fr 80px 90px 80px 32px;
 }
 
 .linea-row {
@@ -1197,7 +1265,7 @@ function badgeClass(estado: string) {
 }
 
 .linea-row--entrega  { grid-template-columns: 1fr 110px 80px 80px 90px; }
-.linea-row--carga    { grid-template-columns: 1fr 90px 32px; }
+.linea-row--carga    { grid-template-columns: 1fr 80px 90px 80px 32px; }
 .linea-row--readonly { pointer-events: none; }
 
 .linea-row:last-child { border-bottom: none; }
@@ -1323,7 +1391,7 @@ function badgeClass(estado: string) {
 @media (min-width: 1024px) {
   .modal-overlay { align-items: center; padding: 24px; }
   .modal {
-    max-width: 680px;
+    max-width: 760px;
     max-height: calc(100dvh - 48px);
     border-radius: var(--radius-xl);
   }

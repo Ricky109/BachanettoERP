@@ -9,6 +9,7 @@
       <button v-if="isAdmin" class="btn-new" @click="abrirModalNuevo">+ Nuevo pedido</button>
     </div>
 
+    <div class="fecha-entrega-label">Fecha que se registra el pedido</div>
     <!-- Filtros -->
     <div class="filters-bar">
       <div v-if="isAdmin" class="fecha-wrap">
@@ -132,13 +133,13 @@
                   class="cliente-option"
                   @click="seleccionarCliente(cli)"
                 >
-                  <span class="cliente-nombre">{{ cli.NOM_CLI }}</span>
+                  <span class="cliente-nombre">{{ nombreConReferencia(cli) }}</span>
                   <span class="cliente-dni">{{ cli.ID_CLI }}</span>
                 </li>
               </ul>
             </div>
             <div v-else class="cliente-seleccionado">
-              <span>{{ clienteSeleccionado.NOM_CLI }}</span>
+              <span>{{ nombreConReferencia(clienteSeleccionado) }}</span>
               <button class="btn-clear" @click="limpiarCliente">✕</button>
             </div>
           </div>
@@ -397,7 +398,7 @@ function formatFecha(iso: string): string {
 }
 
 // ── Filtros tabla ─────────────────────────────────────────
-const fechaFiltro = ref(isAdmin.value ? mananaISO() : hoyISO());
+const fechaFiltro = ref(hoyISO());
 const searchFiltro = ref("");
 const mostrarEntregados = ref(false);
 const mostrarCancelados = ref(false);
@@ -426,7 +427,7 @@ const pedidosFiltrados = computed(() => {
 
 function cargarPedidos() {
   store.listar({
-    fecha: isAdmin.value ? fechaFiltro.value : undefined,
+    fechaRegistro: isAdmin.value ? fechaFiltro.value : undefined,
     search: searchFiltro.value || undefined,
   });
 }
@@ -465,6 +466,11 @@ const totalNuevo = computed(() => {
   const t = lineasNuevo.value.reduce((acc, l) => acc + l.PRC_UNI * l.CAN, 0);
   return t.toFixed(2);
 });
+
+function nombreConReferencia(cliente: Cliente): string {
+  const referencia = cliente.REF_CLI?.trim();
+  return referencia ? `${cliente.NOM_CLI} - (${referencia})` : cliente.NOM_CLI;
+}
 
 function abrirModalNuevo() {
   formNuevo.value = { FEC_ENT_PED: mananaISO(), TUR_PED: Turno.MANANA };
@@ -717,6 +723,13 @@ function badgeClass(estado: string) {
 }
 
 /* ─── Filtros ─────────────────────────────────────────────── */
+.fecha-entrega-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-text-second);
+  margin-bottom: -20px;
+}
+
 .filters-bar {
   display: flex;
   flex-direction: column;

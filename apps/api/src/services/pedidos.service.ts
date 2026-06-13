@@ -35,7 +35,17 @@ function mapPedido(p: any) {
 
 export const pedidosService = {
 
-  async listar({ fecha, search, rol }: { fecha?: string; search?: string; rol: string }) {
+  async listar({
+    fecha,
+    fechaRegistro,
+    search,
+    rol,
+  }: {
+    fecha?: string
+    fechaRegistro?: string
+    search?: string
+    rol: string
+  }) {
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
 
@@ -43,9 +53,21 @@ export const pedidosService = {
       ? hoy
       : fecha ? new Date(fecha) : undefined
 
+    const fechaRegistroInicio = fechaRegistro ? new Date(fechaRegistro) : undefined
+    const fechaRegistroFin = fechaRegistroInicio
+      ? new Date(fechaRegistroInicio)
+      : undefined
+    fechaRegistroFin?.setDate(fechaRegistroFin.getDate() + 1)
+
     const rows = await prisma.vEN_PED.findMany({
       where: {
         ...(fechaFiltro && { FEC_ENT_PED: fechaFiltro }),
+        ...(fechaRegistroInicio && fechaRegistroFin && {
+          FEC_CRE: {
+            gte: fechaRegistroInicio,
+            lt: fechaRegistroFin,
+          },
+        }),
         ...(search && {
           cliente: {
             OR: [

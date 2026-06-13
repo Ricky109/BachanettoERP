@@ -52,10 +52,11 @@ export const pedidosController = {
   async listar(req: AuthRequest, res: Response) {
     try {
       const fecha  = req.query.fecha  as string | undefined
+      const fechaRegistro = req.query.fechaRegistro as string | undefined
       const search = req.query.search as string | undefined
       const rol    = req.user!.rol
 
-      const data = await pedidosService.listar({ fecha, search, rol })
+      const data = await pedidosService.listar({ fecha, fechaRegistro, search, rol })
       return ok(res, data)
     } catch (error) {
       return serverError(res, error)

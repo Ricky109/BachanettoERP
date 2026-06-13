@@ -9,7 +9,7 @@ export const usePedidosStore = defineStore('pedidos', () => {
   const loading = ref(false)
   const error   = ref<string | null>(null)
 
-  async function listar(params?: { fecha?: string; search?: string }) {
+  async function listar(params?: { fecha?: string; fechaRegistro?: string; search?: string }) {
     loading.value = true
     error.value   = null
     try {
