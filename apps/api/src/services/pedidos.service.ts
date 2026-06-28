@@ -33,6 +33,33 @@ function mapPedido(p: any) {
   }
 }
 
+function ahoraEnLima(): Date {
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find(part => part.type === type)?.value ?? 0)
+
+  return new Date(Date.UTC(
+    value('year'),
+    value('month') - 1,
+    value('day'),
+    value('hour'),
+    value('minute'),
+    value('second'),
+    now.getMilliseconds(),
+  ))
+}
+
 export const pedidosService = {
 
   async listar({
@@ -119,10 +146,14 @@ export const pedidosService = {
     if (!cliente) throw new Error('Cliente no encontrado')
 
     return prisma.$transaction(async (tx) => {
+      const fechaRegistro = ahoraEnLima()
+
       const pedido = await tx.vEN_PED.create({
         data: {
           ID_CLI:      dto.ID_CLI,
           ID_USR_CRE:  idUsr,
+          FEC_CRE:     fechaRegistro,
+          FEC_ACT:     fechaRegistro,
           FEC_ENT_PED: new Date(dto.FEC_ENT_PED),
           TUR_PED:     dto.TUR_PED ?? Turno.MANANA,
           EST_PED:     EstadoPedido.PENDIENTE,
