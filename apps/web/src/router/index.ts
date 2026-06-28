@@ -14,24 +14,18 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/components/layout/AppLayout.vue'),
-      children: [
+      children: [       
         {
-          path: '',
-          name: 'dashboard',
-          component: () => import('@/views/dashboard/DashboardView.vue'),
-          meta: { title: 'Dashboard' },
+          path: 'productos',
+          name: 'productos',
+          component: () => import('@/views/products/ProductosView.vue'),
+          meta: { title: 'Productos', roles: ['ADMIN'] },
         },
         {
           path: 'clientes',
           name: 'clientes',
           component: () => import('@/views/clients/ClientesView.vue'),
           meta: { title: 'Clientes', roles: ['ADMIN'] },
-        },
-        {
-          path: 'productos',
-          name: 'productos',
-          component: () => import('@/views/products/ProductosView.vue'),
-          meta: { title: 'Productos', roles: ['ADMIN'] },
         },
         {
           path: 'pedidos',
@@ -50,6 +44,12 @@ const router = createRouter({
           name: 'pagos',
           component: () => import('@/views/payments/PagosView.vue'),
           meta: { title: 'Pagos' },
+        },
+        {
+          path: '',
+          name: 'dashboard',
+          component: () => import('@/views/dashboard/DashboardView.vue'),
+          meta: { title: 'Dashboard' },
         },
       ],
     },

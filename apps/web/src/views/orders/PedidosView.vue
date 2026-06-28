@@ -9,7 +9,7 @@
       <button v-if="isAdmin" class="btn-new" @click="abrirModalNuevo">+ Nuevo pedido</button>
     </div>
 
-    <div class="fecha-entrega-label">Fecha que se registra el pedido</div>
+    <div class="fecha-entrega-label">Fecha de registro</div>
     <!-- Filtros -->
     <div class="filters-bar">
       <div v-if="isAdmin" class="fecha-wrap">

@@ -376,6 +376,26 @@
                 />
               </div>
 
+              <!-- Pago al contado -->
+              <div class="pago-contado-wrap">
+                <label class="check-label">
+                  <input
+                    v-model="formEntrega.pago_contado"
+                    type="checkbox"
+                  />
+                  Pago al contado
+                </label>
+                <div v-if="formEntrega.pago_contado" class="field">
+                  <label class="field-label">Método de pago <span class="required">*</span></label>
+                  <select v-model="formEntrega.MET_PAG" class="field-input">
+                    <option value="">Seleccionar...</option>
+                    <option v-for="(label, key) in MetodoPagoLabel" :key="key" :value="key">
+                      {{ label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
               <div v-if="store.error" class="state-msg state-msg--error">
                 {{ store.error }}
               </div>
@@ -477,7 +497,7 @@ import { useAuthStore }      from '@/stores/auth.store'
 import { clientesService }   from '@/services/clientes.service'
 import { productosService }  from '@/services/productos.service'
 import { pedidosService }    from '@/services/pedidos.service'
-import { Turno, TurnoLabel, EstadoEntrega, EstadoEntregaLabel } from '@bachanetto/shared'
+import { Turno, TurnoLabel, EstadoEntrega, EstadoEntregaLabel, MetodoPago, MetodoPagoLabel } from '@bachanetto/shared'
 import type { Entrega } from '@/services/entregas.service'
 import type { Cliente } from '@/services/clientes.service'
 import type { Producto } from '@/services/productos.service'
@@ -672,9 +692,11 @@ const resultadosProductoEntrega = ref<Producto[]>([])
 const pedidoVinculado          = ref<number | null>(null)
 
 const formEntrega = ref({
-  FEC_ENT: hoyISO(),
-  TUR_ENT: 'MANANA',
-  OBS_ENT: '',
+  FEC_ENT:      hoyISO(),
+  TUR_ENT:      'MANANA',
+  OBS_ENT:      '',
+  pago_contado: false,
+  MET_PAG:      '' as MetodoPago | '',
 })
 
 const lineasConCantidad = computed(() =>
@@ -698,7 +720,13 @@ function nombreConReferencia(cliente: Cliente): string {
 }
 
 function abrirModalEntrega() {
-  formEntrega.value = { FEC_ENT: fechaFiltro.value, TUR_ENT: turnoActivo.value, OBS_ENT: '' }
+  formEntrega.value = {
+    FEC_ENT:      fechaFiltro.value,
+    TUR_ENT:      turnoActivo.value,
+    OBS_ENT:      '',
+    pago_contado: false,
+    MET_PAG:      '',
+  }
   limpiarCliente()
   modalEntregaAbierto.value = true
 }
@@ -811,19 +839,26 @@ function agregarProductoEntrega(prod: Producto) {
 async function confirmarEntrega() {
   if (!clienteSeleccionado.value || lineasConCantidad.value.length === 0) return
 
+  if (formEntrega.value.pago_contado && !formEntrega.value.MET_PAG) {
+    store.error = 'Selecciona un método de pago'
+    return
+  }
+
   const ok = await store.crear({
-    ID_PED:   pedidoVinculado.value ?? undefined,
-    ID_CLI:   clienteSeleccionado.value.ID_CLI,
-    FEC_ENT:  formEntrega.value.FEC_ENT,
-    TUR_ENT:  formEntrega.value.TUR_ENT,
-    OBS_ENT:  formEntrega.value.OBS_ENT || undefined,
-    detalles: lineasConCantidad.value.map(l => ({
+    ID_PED:       pedidoVinculado.value ?? undefined,
+    ID_CLI:       clienteSeleccionado.value.ID_CLI,
+    FEC_ENT:      formEntrega.value.FEC_ENT,
+    TUR_ENT:      formEntrega.value.TUR_ENT,
+    OBS_ENT:      formEntrega.value.OBS_ENT || undefined,
+    pago_contado: formEntrega.value.pago_contado,
+    MET_PAG:      formEntrega.value.pago_contado ? formEntrega.value.MET_PAG : undefined,
+    detalles:     lineasConCantidad.value.map(l => ({
       ID_PRD:  l.ID_PRD,
       CAN:     l.CAN,
       CAN_CAM: l.CAN_CAM,
       PRC_UNI: l.PRC_UNI,
     })),
-  })
+  } as any)
 
   if (ok) {
     cerrarModalEntrega()
@@ -1395,5 +1430,25 @@ function badgeClass(estado: string) {
     max-height: calc(100dvh - 48px);
     border-radius: var(--radius-xl);
   }
+}
+
+.pago-contado-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-bg-alt);
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--c-text-second);
+  cursor: pointer;
 }
 </style>

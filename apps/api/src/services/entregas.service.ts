@@ -24,6 +24,7 @@ function mapEntrega(e: any) {
     TUR_ENT:     e.TUR_ENT,
     EST_ENT:     e.EST_ENT,
     TOT_ENT:     e.TOT_ENT.toString(),
+    PAG_ENT:     e.PAG_ENT ?? false,
     OBS_ENT:     e.OBS_ENT ?? null,
     FEC_CRE:     e.FEC_CRE,
     FEC_ACT:     e.FEC_ACT,
@@ -63,7 +64,11 @@ export const entregasService = {
     return mapEntrega(entrega)
   },
 
-  async crear(dto: CreateEntregaDto, idUsr: string) {
+  async crear(dto: CreateEntregaDto & {
+    pago_contado?: boolean
+    MET_PAG?:      string
+    FEC_PAG?:      string
+  }, idUsr: string) {
     return prisma.$transaction(async (tx) => {
 
       // Calcular total
@@ -82,6 +87,7 @@ export const entregasService = {
           EST_ENT:    EstadoEntrega.CONFIRMADA,
           TOT_ENT:    total,
           OBS_ENT:    dto.OBS_ENT ?? null,
+          PAG_ENT:    dto.pago_contado ?? false,
           detalles: {
             create: dto.detalles.map(d => ({
               ID_PRD:  d.ID_PRD,
@@ -102,7 +108,6 @@ export const entregasService = {
           data:  { EST_PED: EstadoPedido.ENTREGADO },
         })
 
-        // Sincronizar detalle del pedido con lo realmente entregado
         await tx.vEN_DET_PED.deleteMany({ where: { ID_PED: dto.ID_PED } })
         await tx.vEN_DET_PED.createMany({
           data: dto.detalles.map(d => ({
@@ -123,6 +128,21 @@ export const entregasService = {
             ID_PRD:  d.ID_PRD,
             CAN:     d.CAN_CAM,
             FEC_CAM: new Date(dto.FEC_ENT),
+          },
+        })
+      }
+
+      // Registrar pago al contado si aplica
+      if (dto.pago_contado && dto.MET_PAG) {
+        await tx.vEN_PAG.create({
+          data: {
+            ID_CLI:     dto.ID_CLI,
+            ID_USR_REG: idUsr,
+            ID_ENT:     entrega.ID_ENT,
+            MON_PAG:    total,
+            MET_PAG:    dto.MET_PAG,
+            FEC_PAG:    new Date(dto.FEC_PAG ?? dto.FEC_ENT),
+            OBS_PAG:    'Pago al contado',
           },
         })
       }

@@ -140,6 +140,7 @@ model VEN_ENT {
   EST_ENT    String   @default("CONFIRMADA") @db.VarChar(20)
   TOT_ENT    Decimal  @default(0) @db.Decimal(10, 2)
   OBS_ENT    String?
+  PAG_ENT    Boolean  @default(false)
   FEC_CRE    DateTime @default(now())
   FEC_ACT    DateTime @updatedAt
 

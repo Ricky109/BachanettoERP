@@ -1,9 +1,10 @@
 import { Response } from 'express'
 import { body, validationResult } from 'express-validator'
-import { Turno } from '@bachanetto/shared'
+import { Turno, MetodoPago } from '@bachanetto/shared'
 import { ok, created, badRequest, notFound, serverError } from '../utils/response'
 import { AuthRequest } from '../middlewares/auth.middleware'
 import { entregasService } from '../services/entregas.service'
+
 
 export const entregasValidators = {
   crear: [
@@ -29,6 +30,15 @@ export const entregasValidators = {
       .isInt({ min: 0 }).withMessage('Los cambios no pueden ser negativos'),
     body('detalles.*.PRC_UNI')
       .isFloat({ min: 0 }).withMessage('El precio debe ser mayor o igual a 0'),
+    body('pago_contado')
+      .optional()
+      .isBoolean().withMessage('pago_contado debe ser true o false'),
+    body('MET_PAG')
+      .optional({ nullable: true })
+      .isIn(Object.values(MetodoPago)).withMessage('Método de pago inválido'),
+    body('FEC_PAG')
+      .optional({ nullable: true })
+      .isISO8601().withMessage('Fecha de pago inválida'),
   ],
 }
 

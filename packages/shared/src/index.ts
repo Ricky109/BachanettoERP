@@ -217,3 +217,36 @@ export interface CreateSalidaDto {
   TUR_SAL: string
   items:   { ID_PRD: number; CAN_SAL: number }[]
 }
+
+// ── Pagos ──────────────────────────────────────────────────
+
+export interface SaldoCliente {
+  ID_CLI:          string
+  NOM_CLI:         string
+  REF_CLI:         string | null
+  total_entregas:  string
+  total_pagos:     string
+  saldo:           string
+}
+
+export interface Pago {
+  ID_PAG:     number
+  ID_CLI:     string
+  ID_USR_REG: string
+  ID_ENT:     number | null
+  MON_PAG:    string
+  MET_PAG:    MetodoPago
+  FEC_PAG:    string
+  OBS_PAG:    string | null
+  FEC_CRE:    string
+  entrega:    { ID_ENT: number; FEC_ENT: string; TOT_ENT: string } | null
+}
+
+export interface CreatePagoDto {
+  ID_CLI:   string
+  ID_ENT?:  number
+  MON_PAG:  number
+  MET_PAG:  MetodoPago
+  FEC_PAG:  string
+  OBS_PAG?: string
+}

@@ -7,7 +7,7 @@ import productosRoutes from './productos.routes';
 import pedidosRoutes   from './pedidos.routes';
 import entregasRoutes  from './entregas.routes';
 import salidasRoutes from './salidas.routes'
-// import pagosRoutes     from './pagos.routes';
+import pagosRoutes     from './pagos.routes';
 
 const router = Router();
 
@@ -18,6 +18,6 @@ router.use('/productos', productosRoutes);
 router.use('/pedidos',   pedidosRoutes);
 router.use('/entregas',  entregasRoutes);
 router.use('/salidas', salidasRoutes)
-// router.use('/pagos',     pagosRoutes);
+router.use('/pagos',     pagosRoutes);
 
 export default router;
