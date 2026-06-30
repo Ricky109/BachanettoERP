@@ -29,6 +29,11 @@
           </select>
         </div>
 
+        <label class="check-label">
+          <input v-model="mostrarInactivos" type="checkbox" @change="onSearch" />
+          Mostrar desactivados
+        </label>
+
         <!-- Estado de carga -->
         <div v-if="store.loading" class="state-msg">Cargando...</div>
         <div v-else-if="store.error" class="state-msg state-msg--error">{{ store.error }}</div>
@@ -45,14 +50,25 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="producto in store.productos" :key="producto.ID_PRD">
-                <td class="td-bold">{{ producto.NOM_PRD }}</td>
+              <tr
+                v-for="producto in store.productos"
+                :key="producto.ID_PRD"
+                :class="{ 'row--inactivo': !producto.ACT_PRD }"
+              >
+                <td class="td-bold">
+                  {{ producto.NOM_PRD }}
+                  <span v-if="!producto.ACT_PRD" class="badge-inactivo">Inactivo</span>
+                </td>
                 <td class="td-muted">{{ producto.categoria?.NOM_CAT ?? "—" }}</td>
                 <td>S/ {{ parseFloat(producto.PRC_STD).toFixed(2) }}</td>
                 <td class="td-actions">
                   <button class="btn-edit" @click="abrirFormulario(producto)">Editar</button>
-                  <button class="btn-delete" @click="confirmarDesactivar(producto)">
-                    Desactivar
+                  <button
+                    class="btn-delete"
+                    :class="{ 'btn-activar': !producto.ACT_PRD }"
+                    @click="confirmarToggle(producto)"
+                  >
+                    {{ producto.ACT_PRD ? 'Desactivar' : 'Activar' }}
                   </button>
                 </td>
               </tr>
@@ -154,6 +170,7 @@ const store = useProductosStore();
 // Productos
 const search = ref("");
 const filtroCategoria = ref<number | undefined>(undefined);
+const mostrarInactivos = ref(false);
 const modalAbierto = ref(false);
 const productoEditando = ref<Producto | null>(null);
 
@@ -170,6 +187,7 @@ function onSearch() {
   store.listar({
     search: search.value || undefined,
     categoria: filtroCategoria.value,
+    incluirInactivos: mostrarInactivos.value,
   });
 }
 
@@ -193,9 +211,10 @@ async function onSubmit(dto: CreateProductoDto | UpdateProductoDto) {
   if (ok) cerrarModal();
 }
 
-async function confirmarDesactivar(producto: Producto) {
-  if (!confirm(`¿Desactivar "${producto.NOM_PRD}"?`)) return;
-  await store.desactivar(producto.ID_PRD);
+async function confirmarToggle(producto: Producto) {
+  const accion = producto.ACT_PRD ? 'desactivar' : 'activar';
+  if (!confirm(`¿${accion === 'desactivar' ? 'Desactivar' : 'Activar'} "${producto.NOM_PRD}"?`)) return;
+  await store.toggle(producto.ID_PRD);
 }
 
 function editarCategoria(cat: Categoria) {
@@ -406,6 +425,40 @@ async function crearCategoria() {
 
 .state-msg--error {
   color: var(--c-danger);
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--c-text-second);
+  cursor: pointer;
+}
+
+.row--inactivo {
+  opacity: 0.55;
+}
+
+.badge-inactivo {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background: var(--c-danger-bg);
+  color: var(--c-danger);
+}
+
+.btn-activar {
+  border-color: rgba(45,122,79,0.2);
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+
+.btn-activar:hover {
+  background: #d4ecdd;
 }
 
 /* ─── Panel categorías ────────────────────────────────────── */

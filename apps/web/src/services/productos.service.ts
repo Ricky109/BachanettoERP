@@ -40,8 +40,11 @@ export interface UpdateCategoriaDto {
 }
 
 export const productosService = {
-  async listar(params?: { search?: string; categoria?: number }): Promise<Producto[]> {
-    const { data } = await http.get('/productos', { params: { ...params, activo: true } })
+  async listar(params?: { search?: string; categoria?: number; incluirInactivos?: boolean }): Promise<Producto[]> {
+    const query: Record<string, string | number | boolean> = { ...params }
+    if (!params?.incluirInactivos) query.activo = true
+    delete query.incluirInactivos
+    const { data } = await http.get('/productos', { params: query })
     return data.data.data
   },
 
@@ -55,8 +58,9 @@ export const productosService = {
     return data.data
   },
 
-  async desactivar(id: number): Promise<void> {
-    await http.patch(`/productos/${id}/toggle`)
+  async toggle(id: number): Promise<Producto> {
+    const { data } = await http.patch(`/productos/${id}/toggle`)
+    return data.data
   },
 }
 

@@ -22,10 +22,10 @@ export interface UpdateClienteDto {
 
 export const clientesService = {
 
-  async listar(search?: string) {
+  async listar(search?: string, incluirInactivos = false) {
     return prisma.vEN_CLI.findMany({
       where: {
-        ACT_CLI: true,
+        ...(incluirInactivos ? {} : { ACT_CLI: true }),
         ...(search && {
           OR: [
             { NOM_CLI: { contains: search, mode: 'insensitive' } },
@@ -59,8 +59,8 @@ export const clientesService = {
     return prisma.vEN_CLI.create({
       data: {
         ID_CLI:      dto.ID_CLI,
-        NOM_CLI:     dto.NOM_CLI.trim(),
-        REF_CLI:     dto.REF_CLI?.trim()  ?? null,
+        NOM_CLI:     dto.NOM_CLI.trim().toUpperCase(),
+        REF_CLI:     dto.REF_CLI?.trim().toUpperCase() ?? null,
         TEL_CLI:     dto.TEL_CLI?.trim()  ?? null,
         DIR_CLI:     dto.DIR_CLI?.trim()  ?? null,
         LIM_MON_CLI: dto.LIM_MON_CLI      ?? null,
@@ -78,8 +78,8 @@ export const clientesService = {
     return prisma.vEN_CLI.update({
       where: { ID_CLI: id },
       data: {
-        ...(dto.NOM_CLI     !== undefined && { NOM_CLI:     dto.NOM_CLI.trim() }),
-        ...(dto.REF_CLI     !== undefined && { REF_CLI:     dto.REF_CLI?.trim() ?? null }),
+        ...(dto.NOM_CLI     !== undefined && { NOM_CLI: dto.NOM_CLI.trim().toUpperCase() }),
+        ...(dto.REF_CLI     !== undefined && { REF_CLI: dto.REF_CLI?.trim().toUpperCase() ?? null }),
         ...(dto.TEL_CLI     !== undefined && { TEL_CLI:     dto.TEL_CLI?.trim() ?? null }),
         ...(dto.DIR_CLI     !== undefined && { DIR_CLI:     dto.DIR_CLI?.trim() ?? null }),
         ...(dto.LIM_MON_CLI !== undefined && { LIM_MON_CLI: dto.LIM_MON_CLI }),
@@ -88,15 +88,13 @@ export const clientesService = {
     })
   },
 
-  async desactivar(id: string) {
-    const existe = await prisma.vEN_CLI.findUnique({
-      where: { ID_CLI: id },
-    })
-    if (!existe) throw new Error('Cliente no encontrado')
+  async toggle(id: string) {
+    const cliente = await prisma.vEN_CLI.findUnique({ where: { ID_CLI: id } })
+    if (!cliente) throw new Error('Cliente no encontrado')
 
     return prisma.vEN_CLI.update({
       where: { ID_CLI: id },
-      data:  { ACT_CLI: false },
+      data:  { ACT_CLI: !cliente.ACT_CLI },
     })
   },
 }

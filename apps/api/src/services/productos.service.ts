@@ -44,13 +44,21 @@ export const productosService = {
   },
 
   async crear(data: { NOM_PRD: string; PRC_STD: number; ID_CAT?: number }) {
-    return prisma.vEN_PRD.create({ data, include: includeCategoria })
+    return prisma.vEN_PRD.create({ data:{
+      NOM_PRD: data.NOM_PRD.toUpperCase().trim(),
+      PRC_STD: data.PRC_STD,
+      ID_CAT:  data.ID_CAT,
+    }, include: includeCategoria })
   },
 
   async actualizar(id: number, data: { NOM_PRD?: string; PRC_STD?: number; ID_CAT?: number | null }) {
     const existe = await prisma.vEN_PRD.findUnique({ where: { ID_PRD: id } })
     if (!existe) throw new Error('Producto no encontrado')
-    return prisma.vEN_PRD.update({ where: { ID_PRD: id }, data, include: includeCategoria })
+    return prisma.vEN_PRD.update({ where: { ID_PRD: id }, data:{
+      ...(data.NOM_PRD !== undefined && { NOM_PRD: data.NOM_PRD.toUpperCase().trim() }),
+      PRC_STD: data.PRC_STD,
+      ID_CAT:  data.ID_CAT,    
+    }, include: includeCategoria })
   },
 
   async toggle(id: number) {

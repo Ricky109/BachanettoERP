@@ -11,11 +11,11 @@ export const useClientesStore = defineStore('clientes', () => {
   const loadingPrecios   = ref(false)
   const errorPrecios     = ref<string | null>(null)
 
-  async function listar(search?: string) {
+  async function listar(search?: string, incluirInactivos = false) {
     loading.value = true
     error.value   = null
     try {
-      clientes.value = await clientesService.listar(search)
+      clientes.value = await clientesService.listar(search, incluirInactivos)
     } catch {
       error.value = 'Error al cargar los clientes'
     } finally {
@@ -95,24 +95,21 @@ export const useClientesStore = defineStore('clientes', () => {
     }
   }
 
-  async function desactivar(id: string): Promise<boolean> {
+  async function toggle(id: string): Promise<boolean> {
     loading.value = true
     error.value   = null
     try {
-      await clientesService.desactivar(id)
-      clientes.value = clientes.value.filter(c => c.ID_CLI !== id)
+      const actualizado = await clientesService.toggle(id)
+      const index = clientes.value.findIndex(c => c.ID_CLI === id)
+      if (index !== -1) clientes.value[index] = actualizado
       return true
     } catch {
-      error.value = 'Error al desactivar el cliente'
+      error.value = 'Error al cambiar el estado del cliente'
       return false
     } finally {
       loading.value = false
     }
   }
 
-  return {clientes, loading, error,
-    listar, crear, actualizar, desactivar,
-    preciosPactados, loadingPrecios, errorPrecios,
-    listarPreciosPactados, actualizarPrecioPactado,
-  }
+  return { clientes, loading, error, listar, crear, actualizar, toggle }
 })

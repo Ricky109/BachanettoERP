@@ -18,7 +18,7 @@ export const useProductosStore = defineStore('productos', () => {
   const loading   = ref(false)
   const error     = ref<string | null>(null)
 
-  async function listar(params?: { search?: string; categoria?: number }) {
+  async function listar(params?: { search?: string; categoria?: number; incluirInactivos?: boolean }) {
     loading.value = true
     error.value   = null
     try {
@@ -66,15 +66,16 @@ export const useProductosStore = defineStore('productos', () => {
     }
   }
 
-  async function desactivar(id: number): Promise<boolean> {
+  async function toggle(id: number): Promise<boolean> {
     loading.value = true
     error.value   = null
     try {
-      await productosService.desactivar(id)
-      productos.value = productos.value.filter(p => p.ID_PRD !== id)
+      const actualizado = await productosService.toggle(id)
+      const index = productos.value.findIndex(p => p.ID_PRD === id)
+      if (index !== -1) productos.value[index] = actualizado
       return true
     } catch {
-      error.value = 'Error al desactivar el producto'
+      error.value = 'Error al cambiar el estado del producto'
       return false
     } finally {
       loading.value = false
@@ -136,7 +137,7 @@ export const useProductosStore = defineStore('productos', () => {
 
   return {
     productos, loading, error,
-    listar, crear, actualizar, desactivar,
+    listar, crear, actualizar, toggle,
     categorias, loadingCat, errorCat,
     listarCategorias, crearCategoria, actualizarCategoria,
   }

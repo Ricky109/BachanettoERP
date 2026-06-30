@@ -126,6 +126,17 @@
                 placeholder="Buscar por nombre o DNI..."
                 @input="onBuscarCliente"
               />
+              <ul v-if="resultadosCliente.length === 0 && busquedaCliente === ''" class="cliente-dropdown cliente-dropdown--lista">
+                <li
+                  v-for="cli in todosLosClientes"
+                  :key="cli.ID_CLI"
+                  class="cliente-option"
+                  @click="seleccionarCliente(cli)"
+                >
+                  <span class="cliente-nombre">{{ nombreConReferencia(cli) }}</span>
+                  <span class="cliente-dni">{{ cli.ID_CLI }}</span>
+                </li>
+              </ul>
               <ul v-if="resultadosCliente.length > 0" class="cliente-dropdown">
                 <li
                   v-for="cli in resultadosCliente"
@@ -454,6 +465,7 @@ const loadingProductos = ref(false);
 const lineasNuevo = ref<LineaPedido[]>([]);
 const busquedaProductoNuevo = ref("");
 const resultadosProducto = ref<Producto[]>([]);
+const todosLosClientes = ref<Cliente[]>([])
 
 const formNuevo = ref<{ FEC_ENT_PED: string; TUR_PED: Turno }>({
   FEC_ENT_PED: mananaISO(),
@@ -475,6 +487,7 @@ function nombreConReferencia(cliente: Cliente): string {
 function abrirModalNuevo() {
   formNuevo.value = { FEC_ENT_PED: mananaISO(), TUR_PED: Turno.MANANA };
   limpiarCliente();
+  cargarTodosLosClientes()
   modalNuevoAbierto.value = true;
 }
 
@@ -500,6 +513,10 @@ async function seleccionarCliente(cli: Cliente) {
   resultadosCliente.value = [];
   busquedaCliente.value = "";
   await cargarProductosPactados(cli.ID_CLI);
+}
+
+async function cargarTodosLosClientes() {
+  todosLosClientes.value = await clientesService.listar()
 }
 
 async function cargarProductosPactados(idCli: string) {
@@ -1016,6 +1033,13 @@ function badgeClass(estado: string) {
   overflow-y: auto;
 }
 
+.cliente-dropdown--lista {
+  position: static;
+  max-height: 240px;
+  margin-top: 6px;
+  box-shadow: none;
+}
+
 .cliente-option {
   display: flex;
   justify-content: space-between;
@@ -1142,9 +1166,17 @@ function badgeClass(estado: string) {
   overflow: hidden;
 }
 
+.lineas-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
 .lineas-header {
   display: grid;
-  grid-template-columns: 1fr 120px 90px 32px;
+  grid-template-columns: minmax(140px, 1fr) 120px 90px 32px;
   gap: 8px;
   padding: 8px 12px;
   background: var(--c-bg-alt);
@@ -1152,17 +1184,20 @@ function badgeClass(estado: string) {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--c-text-muted);
+  min-width: 420px;
 }
 
 .linea-row {
   display: grid;
-  grid-template-columns: 1fr 120px 90px 32px;
+  grid-template-columns: minmax(140px, 1fr) 120px 90px 32px;
   gap: 8px;
   align-items: center;
   padding: 8px 12px;
   border-bottom: 1px solid var(--c-border);
   transition: background var(--transition);
+  min-width: 420px;
 }
+
 .linea-row:last-child {
   border-bottom: none;
 }

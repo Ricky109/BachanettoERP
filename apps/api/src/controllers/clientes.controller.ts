@@ -24,7 +24,8 @@ export const clientesController = {
   async listar(req: AuthRequest, res: Response) {
     try {
       const search = req.query.search as string | undefined
-      const data   = await clientesService.listar(search)
+      const incluirInactivos = req.query.incluirInactivos === 'true'
+      const data = await clientesService.listar(search, incluirInactivos)
       return ok(res, data)
     } catch (error) {
       return serverError(res, error)
@@ -71,10 +72,10 @@ export const clientesController = {
     }
   },
 
-  async desactivar(req: AuthRequest, res: Response) {
+  async toggle(req: AuthRequest, res: Response) {
     try {
-      await clientesService.desactivar(req.params['id'] as string)
-      return ok(res, null, 'Cliente desactivado correctamente')
+      const cliente = await clientesService.toggle(req.params['id'] as string)
+      return ok(res, cliente, `Cliente ${cliente.ACT_CLI ? 'activado' : 'desactivado'} correctamente`)
     } catch (error) {
       if (error instanceof Error && error.message === 'Cliente no encontrado') {
         return notFound(res, error.message)

@@ -19,6 +19,11 @@
       />
     </div>
 
+    <label class="check-label">
+      <input v-model="mostrarInactivos" type="checkbox" @change="onSearch" />
+      Mostrar desactivados
+    </label>
+
     <!-- Estado de carga -->
     <div v-if="loading" class="state-msg">Cargando...</div>
     <div v-else-if="error" class="state-msg state-msg--error">{{ error }}</div>
@@ -38,9 +43,16 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="cliente in clientes" :key="cliente.ID_CLI">
+          <tr
+            v-for="cliente in clientes"
+            :key="cliente.ID_CLI"
+            :class="{ 'row--inactivo': !cliente.ACT_CLI }"
+          >
             <td class="td-mono">{{ cliente.ID_CLI }}</td>
-            <td class="td-bold">{{ cliente.NOM_CLI }}</td>
+            <td class="td-bold">
+              {{ cliente.NOM_CLI }}
+              <span v-if="!cliente.ACT_CLI" class="badge-inactivo">Inactivo</span>
+            </td>
             <td class="td-muted">{{ cliente.REF_CLI ?? "—" }}</td>
             <td>{{ cliente.TEL_CLI ?? "—" }}</td>
             <td>{{ cliente.LIM_MON_CLI ? `S/ ${cliente.LIM_MON_CLI}` : "—" }}</td>
@@ -48,7 +60,13 @@
             <td class="td-actions">
               <button class="btn-edit" @click="abrirFormulario(cliente)">Editar</button>
               <button class="btn-precios" @click="abrirPrecios(cliente)">Precios</button>
-              <button class="btn-delete" @click="confirmarDesactivar(cliente)">Desactivar</button>
+              <button
+                class="btn-delete"
+                :class="{ 'btn-activar': !cliente.ACT_CLI }"
+                @click="confirmarToggle(cliente)"
+              >
+                {{ cliente.ACT_CLI ? 'Desactivar' : 'Activar' }}
+              </button>
             </td>
           </tr>
         </tbody>
@@ -103,13 +121,14 @@ const modalPreciosAbierto = ref(false);
 const clientePrecios = ref<Cliente | null>(null);
 
 const search = ref("");
+const mostrarInactivos = ref(false);
 const modalAbierto = ref(false);
 const clienteEditando = ref<Cliente | null>(null);
 
-onMounted(() => store.listar());
+onMounted(() => store.listar(undefined, mostrarInactivos.value));
 
 function onSearch() {
-  store.listar(search.value || undefined);
+  store.listar(search.value || undefined, mostrarInactivos.value);
 }
 
 function abrirFormulario(cliente?: Cliente) {
@@ -142,9 +161,10 @@ async function onSubmit(dto: CreateClienteDto | UpdateClienteDto) {
   if (ok) cerrarModal();
 }
 
-async function confirmarDesactivar(cliente: Cliente) {
-  if (!confirm(`¿Desactivar a ${cliente.NOM_CLI}?`)) return;
-  await store.desactivar(cliente.ID_CLI);
+async function confirmarToggle(cliente: Cliente) {
+  const accion = cliente.ACT_CLI ? 'desactivar' : 'activar';
+  if (!confirm(`¿${accion === 'desactivar' ? 'Desactivar' : 'Activar'} a ${cliente.NOM_CLI}?`)) return;
+  await store.toggle(cliente.ID_CLI);
 }
 </script>
 
@@ -189,6 +209,40 @@ async function confirmarDesactivar(cliente: Cliente) {
 
 .search-bar {
   display: flex;
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--c-text-second);
+  cursor: pointer;
+}
+
+.row--inactivo {
+  opacity: 0.55;
+}
+
+.badge-inactivo {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background: var(--c-danger-bg);
+  color: var(--c-danger);
+}
+
+.btn-activar {
+  border-color: rgba(45,122,79,0.2);
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+
+.btn-activar:hover {
+  background: #d4ecdd;
 }
 
 .search-input {

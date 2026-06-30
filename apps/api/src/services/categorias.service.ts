@@ -9,12 +9,21 @@ export const categoriasService = {
   },
 
   async crear(data: { NOM_CAT: string; DES_CAT?: string }) {
-    return prisma.vEN_CAT_PRD.create({ data })
+    return prisma.vEN_CAT_PRD.create({ data:{
+      NOM_CAT: data.NOM_CAT.toUpperCase().trim(),
+      DES_CAT: data.DES_CAT?.toUpperCase().trim(),
+    } })
   },
 
   async actualizar(id: number, data: { NOM_CAT?: string; DES_CAT?: string }) {
     const existe = await prisma.vEN_CAT_PRD.findUnique({ where: { ID_CAT: id } })
     if (!existe) throw new Error('Categoría no encontrada')
-    return prisma.vEN_CAT_PRD.update({ where: { ID_CAT: id }, data })
+    return prisma.vEN_CAT_PRD.update({
+      where: { ID_CAT: id },
+      data: {
+        ...(data.NOM_CAT !== undefined && { NOM_CAT: data.NOM_CAT.toUpperCase().trim() }),
+        ...(data.DES_CAT !== undefined && { DES_CAT: data.DES_CAT.toUpperCase().trim() }),
+      }
+    })
   },
 }

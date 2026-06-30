@@ -266,6 +266,24 @@
                 placeholder="Buscar por nombre o DNI..."
                 @input="onBuscarCliente"
               />
+              <ul v-if="resultadosCliente.length === 0 && busquedaCliente === ''" class="cliente-dropdown cliente-dropdown--lista">
+                <li v-if="loadingClientesPedido" class="cliente-option cliente-option--msg">
+                  Cargando...
+                </li>
+                <li v-else-if="clientesConPedido.length === 0" class="cliente-option cliente-option--msg">
+                  No hay clientes con pedido para esta fecha y turno.
+                </li>
+                <li
+                  v-else
+                  v-for="cli in clientesConPedido"
+                  :key="cli.ID_CLI"
+                  class="cliente-option"
+                  @click="seleccionarCliente(cli)"
+                >
+                  <span class="cliente-nombre">{{ nombreConReferencia(cli) }}</span>
+                  <span class="cliente-dni">{{ cli.ID_CLI }}</span>
+                </li>
+              </ul>
               <ul v-if="resultadosCliente.length > 0" class="cliente-dropdown">
                 <li
                   v-for="cli in resultadosCliente"
@@ -574,6 +592,8 @@ const lineasCarga            = ref<LineaCarga[]>([])
 const busquedaProductoCarga  = ref('')
 const resultadosProductoCarga = ref<Producto[]>([])
 const loadingPedidosCarga    = ref(false)
+const clientesConPedido    = ref<Cliente[]>([])
+const loadingClientesPedido = ref(false)
 
 const formCarga = ref({ FEC_SAL: hoyISO(), TUR_SAL: 'MANANA' })
 
@@ -671,6 +691,29 @@ async function confirmarCarga() {
   }
 }
 
+async function cargarClientesConPedido() {
+  loadingClientesPedido.value = true
+  try {
+    const pedidos = await pedidosService.listar({
+      fecha: formEntrega.value.FEC_ENT,
+    })
+    const pendientes = pedidos.filter(
+      p => p.TUR_PED === formEntrega.value.TUR_ENT && p.EST_PED === 'PENDIENTE'
+    )
+    const idsUnicos = Array.from(new Set(pendientes.map(p => p.ID_CLI)))
+
+    const clientesCompletos = await Promise.all(
+      idsUnicos.map(id => clientesService.buscarPorId(id))
+    )
+
+    clientesConPedido.value = clientesCompletos
+  } catch {
+    clientesConPedido.value = []
+  } finally {
+    loadingClientesPedido.value = false
+  }
+}
+
 // ── Modal entrega ─────────────────────────────────────────
 interface LineaEntrega {
   ID_PRD:       number
@@ -728,6 +771,7 @@ function abrirModalEntrega() {
     MET_PAG:      '',
   }
   limpiarCliente()
+  cargarClientesConPedido()
   modalEntregaAbierto.value = true
 }
 
@@ -1182,6 +1226,23 @@ function badgeClass(estado: string) {
   overflow-y: auto;
 }
 
+.cliente-dropdown--lista {
+  position: static;
+  max-height: 240px;
+  margin-top: 6px;
+  box-shadow: none;
+}
+
+.cliente-option--msg {
+  justify-content: center;
+  color: var(--c-text-muted);
+  cursor: default;
+}
+
+.cliente-option--msg:hover {
+  background: transparent;
+}
+
 .cliente-option {
   display: flex;
   justify-content: space-between;
@@ -1273,9 +1334,17 @@ function badgeClass(estado: string) {
   overflow: hidden;
 }
 
+.lineas-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
 .lineas-header {
   display: grid;
-  grid-template-columns: 1fr 110px 80px 80px 90px;
+  grid-template-columns: minmax(140px, 1fr) 110px 80px 80px 90px;
   gap: 8px;
   padding: 8px 12px;
   background: var(--c-bg-alt);
@@ -1283,20 +1352,22 @@ function badgeClass(estado: string) {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--c-text-muted);
-}
-
-.lineas-header--carga {
-  grid-template-columns: 1fr 80px 90px 80px 32px;
+  min-width: 520px;
 }
 
 .linea-row {
   display: grid;
-  grid-template-columns: 1fr 110px 80px 80px 90px;
+  grid-template-columns: minmax(140px, 1fr) 110px 80px 80px 90px;
   gap: 8px;
   align-items: center;
   padding: 8px 12px;
   border-bottom: 1px solid var(--c-border);
   transition: background var(--transition);
+  min-width: 520px;
+}
+
+.lineas-header--carga {
+  grid-template-columns: 1fr 80px 90px 80px 32px;
 }
 
 .linea-row--entrega  { grid-template-columns: 1fr 110px 80px 80px 90px; }

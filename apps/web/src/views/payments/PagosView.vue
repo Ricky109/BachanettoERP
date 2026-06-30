@@ -283,7 +283,7 @@ function resetFormPago() {
   formPago.value = {
     MON_PAG: null,
     MET_PAG: '',
-    FEC_PAG: localISO(new Date()),
+    FEC_PAG: '',
     OBS_PAG: '',
   }
   errorMonto.value = ''
@@ -297,6 +297,10 @@ function validar(): boolean {
   }
   if (!formPago.value.MET_PAG) {
     errorMonto.value = 'Selecciona un método de pago'
+    return false
+  }
+  if (!formPago.value.FEC_PAG) {
+    errorMonto.value = 'La fecha es requerida'
     return false
   }
   return true

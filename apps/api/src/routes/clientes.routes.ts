@@ -29,9 +29,9 @@ router.put('/:id',
 )
 
 // DELETE /api/clientes/:id — solo ADMIN
-router.delete('/:id',
+router.patch('/:id/toggle',
   authorize(Rol.ADMIN),
-  clientesController.desactivar
+  clientesController.toggle
 )
 
 export default router

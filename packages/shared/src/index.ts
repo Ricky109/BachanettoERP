@@ -40,16 +40,18 @@ export type EstadoEntrega = (typeof EstadoEntrega)[keyof typeof EstadoEntrega];
 
 // Métodos de pago
 export const MetodoPago = {
-  EFECTIVO: 'EFECTIVO',
-  YAPE:     'YAPE',
-  PLIN:     'PLIN',
+  EFECTIVO:  'EFECTIVO',
+  YAPE:      'YAPE',
+  PLIN:      'PLIN',
+  DEPOSITO:  'DEPOSITO',
 } as const;
 export type MetodoPago = (typeof MetodoPago)[keyof typeof MetodoPago];
 
 export const MetodoPagoLabel: Record<MetodoPago, string> = {
-  EFECTIVO: 'Efectivo',
-  YAPE:     'Yape',
-  PLIN:     'Plin',
+  EFECTIVO:  'Efectivo',
+  YAPE:      'Yape',
+  PLIN:      'Plin',
+  DEPOSITO:  'Depósito',
 };
 
 // Formato estándar de respuesta de la API

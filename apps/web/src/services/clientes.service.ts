@@ -33,8 +33,10 @@ export interface UpdateClienteDto {
 }
 
 export const clientesService = {
-  async listar(search?: string): Promise<Cliente[]> {
-    const params = search ? { search } : {}
+  async listar(search?: string, incluirInactivos = false): Promise<Cliente[]> {
+    const params: Record<string, string | boolean> = {}
+    if (search) params.search = search
+    if (incluirInactivos) params.incluirInactivos = true
     const { data } = await http.get('/clientes', { params })
     return data.data
   },
@@ -54,8 +56,9 @@ export const clientesService = {
     return data.data
   },
 
-  async desactivar(id: string): Promise<void> {
-    await http.delete(`/clientes/${id}`)
+  async toggle(id: string): Promise<Cliente> {
+    const { data } = await http.patch(`/clientes/${id}/toggle`)
+    return data.data
   },
 
   async listarPreciosPactados(idCli: string): Promise<ProductoPactado[]> {
