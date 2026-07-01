@@ -23,7 +23,6 @@ export const authService = {
     const passwordOk = await bcrypt.compare(password, usuario.PWD_USR);
     if (!passwordOk) throw new Error('Credenciales incorrectas');
 
-    // Generar JWT
     const token = jwt.sign(
       {
         sub:    usuario.ID_USR,
@@ -32,7 +31,7 @@ export const authService = {
         nombre: usuario.NOM_USR,
       },
       env.JWT_SECRET,
-      { expiresIn: env.JWT_EXPIRES_IN }
+      { expiresIn: env.JWT_EXPIRES_IN as any }
     );
 
     return {

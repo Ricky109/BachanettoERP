@@ -6,11 +6,13 @@
     "apps/*",
     "packages/*"
   ],
-  "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
-    "dev:api": "npm run dev --workspace=apps/api",
-    "dev:web": "npm run dev --workspace=apps/web"
-  },
+ "scripts": {
+  "dev":       "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+  "dev:api":   "npm run dev --workspace=apps/api",
+  "dev:web":   "npm run dev --workspace=apps/web",
+  "build":     "npm run build --workspace=packages/shared && npm run build --workspace=apps/api",
+  "build:web": "npm run build --workspace=apps/web"
+},
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
