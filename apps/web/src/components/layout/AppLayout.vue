@@ -80,22 +80,20 @@ const userInitials = computed(() => {
 const rolLabel = computed(() => (usuario.value?.rol === "ADMIN" ? "Administrador" : "Repartidor"));
 
 const navItems = computed(() => {
-  const items = [
-    { name: "dashboard", to: "/", label: "Dashboard" },
-    { name: "entregas", to: "/entregas", label: "Entregas" },
-    { name: "pagos", to: "/pagos", label: "Pagos" },
-  ];
+  const items: { name: string; to: string; label: string }[] = [
+    { name: 'entregas',  to: '/entregas',  label: 'Entregas'  },
+    { name: 'pagos',     to: '/pagos',     label: 'Pagos'     },
+    { name: 'dashboard', to: '/',          label: 'Dashboard' },
+  ]
   if (isAdmin.value) {
-    items.splice(
-      1,
-      0,
-      { name: "pedidos", to: "/pedidos", label: "Pedidos" },
-      { name: "clientes", to: "/clientes", label: "Clientes" },
-      { name: "productos", to: "/productos", label: "Productos" },
-    );
+    items.unshift(
+      { name: 'productos', to: '/productos', label: 'Productos' },
+      { name: 'clientes',  to: '/clientes',  label: 'Clientes'  },
+      { name: 'pedidos',   to: '/pedidos',   label: 'Pedidos'   },
+    )
   }
-  return items;
-});
+  return items
+})
 
 function handleLogout() {
   auth.logout();
