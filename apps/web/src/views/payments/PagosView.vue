@@ -308,6 +308,7 @@ function validar(): boolean {
 
 async function confirmarPago() {
   if (!validar() || !store.saldoActual) return
+  if (!confirm('¿Confirmar el registro del pago?')) return
 
   const ok = await store.registrar({
     ID_CLI:  store.saldoActual.ID_CLI,

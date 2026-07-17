@@ -154,8 +154,10 @@ function cerrarPrecios() {
 async function onSubmit(dto: CreateClienteDto | UpdateClienteDto) {
   let ok = false;
   if (clienteEditando.value) {
+    if (!confirm('¿Confirmar los cambios en el cliente?')) return;
     ok = await store.actualizar(clienteEditando.value.ID_CLI, dto as UpdateClienteDto);
   } else {
+    if (!confirm('¿Confirmar el registro del nuevo cliente?')) return;
     ok = await store.crear(dto as CreateClienteDto);
   }
   if (ok) cerrarModal();

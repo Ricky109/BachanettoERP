@@ -204,8 +204,10 @@ function cerrarModal() {
 async function onSubmit(dto: CreateProductoDto | UpdateProductoDto) {
   let ok = false;
   if (productoEditando.value) {
+    if (!confirm('¿Confirmar los cambios en el producto?')) return;
     ok = await store.actualizar(productoEditando.value.ID_PRD, dto as UpdateProductoDto);
   } else {
+    if (!confirm('¿Confirmar el registro del nuevo producto?')) return;
     ok = await store.crear(dto as CreateProductoDto);
   }
   if (ok) cerrarModal();
@@ -229,6 +231,7 @@ function cancelarEditar() {
 
 async function guardarCategoria() {
   if (!categoriaEditando.value) return;
+  if (!confirm('¿Confirmar los cambios en la categoría?')) return;
   const ok = await store.actualizarCategoria(categoriaEditando.value.ID_CAT, {
     NOM_CAT: formCat.value.NOM_CAT || undefined,
     DES_CAT: formCat.value.DES_CAT || undefined,
@@ -238,11 +241,12 @@ async function guardarCategoria() {
 
 async function crearCategoria() {
   if (!formCat.value.NOM_CAT.trim()) return;
+  if (!confirm('¿Confirmar el registro de la nueva categoría?')) return;
   const ok = await store.crearCategoria({
     NOM_CAT: formCat.value.NOM_CAT,
     DES_CAT: formCat.value.DES_CAT || undefined,
   });
-  if (ok) formCat.value = { NOM_CAT: "", DES_CAT: "" };
+  if (ok) formCat.value = { NOM_CAT: '', DES_CAT: '' };
 }
 </script>
 

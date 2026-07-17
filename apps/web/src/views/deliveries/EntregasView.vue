@@ -353,13 +353,7 @@
                   <span class="linea-nombre">{{ linea.NOM_PRD }}</span>
                   <div class="linea-precio-wrap">
                     <span class="precio-prefix">S/</span>
-                    <input
-                      v-model.number="linea.PRC_UNI"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      class="field-input linea-input"
-                    />
+                    <span class="linea-precio-readonly">{{ linea.PRC_UNI.toFixed(2) }}</span>
                   </div>
                   <input
                     v-model.number="linea.CAN"
@@ -718,7 +712,7 @@ async function cargarClientesConPedido() {
 interface LineaEntrega {
   ID_PRD:       number
   NOM_PRD:      string
-  CAN:          number
+  CAN:          number | null
   CAN_CAM:      number
   PRC_UNI:      number
   precio_nuevo: boolean
@@ -743,19 +737,19 @@ const formEntrega = ref({
 })
 
 const lineasConCantidad = computed(() =>
-  lineasEntrega.value.filter(l => l.CAN > 0)
+  lineasEntrega.value.filter(l => l.CAN !== null && l.CAN > 0)
 )
+
+function subtotalLinea(linea: LineaEntrega): string {
+  return ((( linea.CAN ?? 0) - linea.CAN_CAM) * linea.PRC_UNI).toFixed(2)
+}
 
 const totalEntrega = computed(() => {
   const t = lineasEntrega.value.reduce((acc, l) => {
-    return acc + ((l.CAN - l.CAN_CAM) * l.PRC_UNI)
+    return acc + (((l.CAN ?? 0) - l.CAN_CAM) * l.PRC_UNI)
   }, 0)
   return t.toFixed(2)
 })
-
-function subtotalLinea(linea: LineaEntrega): string {
-  return ((linea.CAN - linea.CAN_CAM) * linea.PRC_UNI).toFixed(2)
-}
 
 function nombreConReferencia(cliente: Cliente): string {
   const referencia = cliente.REF_CLI?.trim()
@@ -803,7 +797,6 @@ async function cargarProductosCliente(idCli: string) {
   loadingProductos.value = true
   pedidoVinculado.value  = null
   try {
-    // Buscar pedido pendiente del cliente para la fecha y turno
     const pedidos = await pedidosService.listar({
       fecha:  formEntrega.value.FEC_ENT,
       search: idCli,
@@ -825,12 +818,11 @@ async function cargarProductosCliente(idCli: string) {
         precio_nuevo: false,
       }))
     } else {
-      // Entrega directa — cargar productos pactados
       const pactados = await pedidosService.productosPactados(idCli)
       lineasEntrega.value = pactados.map(p => ({
         ID_PRD:       p.ID_PRD,
         NOM_PRD:      p.NOM_PRD,
-        CAN:          0,
+        CAN:          null,
         CAN_CAM:      0,
         PRC_UNI:      parseFloat(p.PRC_UNI),
         precio_nuevo: false,
@@ -888,6 +880,8 @@ async function confirmarEntrega() {
     return
   }
 
+  if (!confirm('¿Confirmar el registro de la entrega?')) return
+
   const ok = await store.crear({
     ID_PED:       pedidoVinculado.value ?? undefined,
     ID_CLI:       clienteSeleccionado.value.ID_CLI,
@@ -898,7 +892,7 @@ async function confirmarEntrega() {
     MET_PAG:      formEntrega.value.pago_contado ? formEntrega.value.MET_PAG : undefined,
     detalles:     lineasConCantidad.value.map(l => ({
       ID_PRD:  l.ID_PRD,
-      CAN:     l.CAN,
+      CAN:     l.CAN as unknown as number,
       CAN_CAM: l.CAN_CAM,
       PRC_UNI: l.PRC_UNI,
     })),
@@ -1391,6 +1385,14 @@ function badgeClass(estado: string) {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.linea-precio-readonly {
+  font-size: 0.875rem;
+  color: var(--c-text-muted);
+  padding: 6px 8px;
+  text-align: right;
+  min-width: 60px;
 }
 
 .precio-prefix { font-size: 0.8125rem; color: var(--c-text-muted); flex-shrink: 0; }

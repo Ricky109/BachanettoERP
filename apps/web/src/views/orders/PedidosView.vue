@@ -189,14 +189,14 @@
               </div>
 
               <div v-else class="lineas-list">
-                <!-- en modal nuevo, reemplaza lineas-header -->
                 <div class="lineas-header lineas-header--nuevo">
                   <span>Producto</span>
                   <span>Precio S/</span>
                   <span>Cantidad</span>
+                  <span></span>
                 </div>
                 <div
-                  v-for="linea in lineasNuevo"
+                  v-for="(linea, i) in lineasNuevo"
                   :key="linea.ID_PRD"
                   class="linea-row linea-row--nuevo-pedido"
                   :class="{ 'linea-row--nueva': linea.precio_nuevo }"
@@ -206,18 +206,18 @@
                     <span class="precio-prefix">S/</span>
                     <input
                       v-model.number="linea.PRC_UNI"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      class="field-input linea-input"
+                      type="text"
+                      inputmode="decimal"
+                      class="field-input linea-input linea-input--no-spin"
                     />
                   </div>
                   <input
                     v-model.number="linea.CAN"
                     type="number"
-                    min="0"
+                    min="1"
                     class="field-input linea-input"
                   />
+                  <button class="btn-remove" @click="quitarLineaNuevo(i)">✕</button>
                 </div>
               </div>
 
@@ -386,9 +386,7 @@ function localISO(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function hoyISO(): string {
-  return localISO(new Date());
-}
+function hoyISO(): string { return localISO(new Date()); }
 
 function mananaISO(): string {
   const d = new Date();
@@ -402,15 +400,14 @@ function formatFecha(iso: string): string {
   const y = Number(parts[0] ?? 0)
   const m = Number(parts[1] ?? 1)
   const d = Number(parts[2] ?? 1)
-  const date = new Date(y, m - 1, d)
-  return date.toLocaleDateString('es-PE', {
+  return new Date(y, m - 1, d).toLocaleDateString('es-PE', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   })
 }
 
 // ── Filtros tabla ─────────────────────────────────────────
-const fechaFiltro = ref(hoyISO());
-const searchFiltro = ref("");
+const fechaFiltro       = ref(hoyISO());
+const searchFiltro      = ref("");
 const mostrarEntregados = ref(false);
 const mostrarCancelados = ref(false);
 
@@ -420,9 +417,8 @@ const diaSemana = computed((): string => {
   const y = Number(parts[0] ?? 0)
   const m = Number(parts[1] ?? 1)
   const d = Number(parts[2] ?? 1)
-  const date = new Date(y, m - 1, d)
   const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
-  return dias[date.getDay()] ?? ''
+  return dias[new Date(y, m - 1, d).getDay()] ?? ''
 })
 
 const pedidosFiltrados = computed(() => {
@@ -447,35 +443,37 @@ onMounted(() => cargarPedidos());
 
 // ── Tipo línea ────────────────────────────────────────────
 interface LineaPedido {
-  ID_PRD: number;
-  NOM_PRD: string;
-  CAN: number;
-  PRC_UNI: number;
+  ID_PRD:       number;
+  NOM_PRD:      string;
+  CAN:          number | null;
+  PRC_UNI:      number;
   precio_nuevo: boolean;
 }
 
 // ══════════════════════════════════════════════════════════
 // MODAL NUEVO PEDIDO
 // ══════════════════════════════════════════════════════════
-const modalNuevoAbierto = ref(false);
+const modalNuevoAbierto   = ref(false);
 const clienteSeleccionado = ref<Cliente | null>(null);
-const busquedaCliente = ref("");
-const resultadosCliente = ref<Cliente[]>([]);
-const loadingProductos = ref(false);
-const lineasNuevo = ref<LineaPedido[]>([]);
+const busquedaCliente     = ref("");
+const resultadosCliente   = ref<Cliente[]>([]);
+const loadingProductos    = ref(false);
+const lineasNuevo         = ref<LineaPedido[]>([]);
 const busquedaProductoNuevo = ref("");
-const resultadosProducto = ref<Producto[]>([]);
-const todosLosClientes = ref<Cliente[]>([])
+const resultadosProducto  = ref<Producto[]>([]);
+const todosLosClientes    = ref<Cliente[]>([]);
 
 const formNuevo = ref<{ FEC_ENT_PED: string; TUR_PED: Turno }>({
   FEC_ENT_PED: mananaISO(),
-  TUR_PED: Turno.MANANA,
+  TUR_PED:     Turno.MANANA,
 });
 
-const lineasConCantidad = computed(() => lineasNuevo.value.filter((l) => l.CAN > 0));
+const lineasConCantidad = computed(() =>
+  lineasNuevo.value.filter((l) => l.CAN !== null && l.CAN > 0)
+);
 
 const totalNuevo = computed(() => {
-  const t = lineasNuevo.value.reduce((acc, l) => acc + l.PRC_UNI * l.CAN, 0);
+  const t = lineasNuevo.value.reduce((acc, l) => acc + l.PRC_UNI * (l.CAN ?? 0), 0);
   return t.toFixed(2);
 });
 
@@ -487,7 +485,7 @@ function nombreConReferencia(cliente: Cliente): string {
 function abrirModalNuevo() {
   formNuevo.value = { FEC_ENT_PED: mananaISO(), TUR_PED: Turno.MANANA };
   limpiarCliente();
-  cargarTodosLosClientes()
+  cargarTodosLosClientes();
   modalNuevoAbierto.value = true;
 }
 
@@ -510,13 +508,13 @@ function onBuscarCliente() {
 
 async function seleccionarCliente(cli: Cliente) {
   clienteSeleccionado.value = cli;
-  resultadosCliente.value = [];
-  busquedaCliente.value = "";
+  resultadosCliente.value   = [];
+  busquedaCliente.value     = "";
   await cargarProductosPactados(cli.ID_CLI);
 }
 
 async function cargarTodosLosClientes() {
-  todosLosClientes.value = await clientesService.listar()
+  todosLosClientes.value = await clientesService.listar();
 }
 
 async function cargarProductosPactados(idCli: string) {
@@ -524,10 +522,10 @@ async function cargarProductosPactados(idCli: string) {
   try {
     const pactados = await pedidosService.productosPactados(idCli);
     lineasNuevo.value = pactados.map((p) => ({
-      ID_PRD: p.ID_PRD,
-      NOM_PRD: p.NOM_PRD,
-      CAN: 0,
-      PRC_UNI: parseFloat(p.PRC_UNI),
+      ID_PRD:       p.ID_PRD,
+      NOM_PRD:      p.NOM_PRD,
+      CAN:          null,
+      PRC_UNI:      parseFloat(p.PRC_UNI),
       precio_nuevo: false,
     }));
   } catch {
@@ -538,12 +536,12 @@ async function cargarProductosPactados(idCli: string) {
 }
 
 function limpiarCliente() {
-  clienteSeleccionado.value = null;
-  busquedaCliente.value = "";
-  resultadosCliente.value = [];
-  lineasNuevo.value = [];
+  clienteSeleccionado.value  = null;
+  busquedaCliente.value      = "";
+  resultadosCliente.value    = [];
+  lineasNuevo.value          = [];
   busquedaProductoNuevo.value = "";
-  resultadosProducto.value = [];
+  resultadosProducto.value   = [];
 }
 
 let debounceProducto: ReturnType<typeof setTimeout>;
@@ -562,27 +560,32 @@ function onBuscarProductoNuevo() {
 
 function agregarProducto(prod: Producto) {
   lineasNuevo.value.push({
-    ID_PRD: prod.ID_PRD,
-    NOM_PRD: prod.NOM_PRD,
-    CAN: 0,
-    PRC_UNI: parseFloat(prod.PRC_STD),
+    ID_PRD:       prod.ID_PRD,
+    NOM_PRD:      prod.NOM_PRD,
+    CAN:          null,
+    PRC_UNI:      parseFloat(prod.PRC_STD),
     precio_nuevo: true,
   });
   busquedaProductoNuevo.value = "";
-  resultadosProducto.value = [];
+  resultadosProducto.value    = [];
+}
+
+function quitarLineaNuevo(index: number) {
+  lineasNuevo.value.splice(index, 1);
 }
 
 async function confirmarNuevo() {
   if (!clienteSeleccionado.value || lineasConCantidad.value.length === 0) return;
+  if (!confirm('¿Confirmar el registro del pedido?')) return;
 
   const ok = await store.crear({
-    ID_CLI: clienteSeleccionado.value.ID_CLI,
+    ID_CLI:      clienteSeleccionado.value.ID_CLI,
     FEC_ENT_PED: formNuevo.value.FEC_ENT_PED,
-    TUR_PED: formNuevo.value.TUR_PED,
-    detalles: lineasConCantidad.value.map((l) => ({
-      ID_PRD: l.ID_PRD,
-      CAN: l.CAN,
-      PRC_UNI: l.PRC_UNI,
+    TUR_PED:     formNuevo.value.TUR_PED,
+    detalles:    lineasConCantidad.value.map((l) => ({
+      ID_PRD:       l.ID_PRD,
+      CAN:          l.CAN as unknown as number,
+      PRC_UNI:      l.PRC_UNI,
       precio_nuevo: l.precio_nuevo,
     })),
   });
@@ -596,19 +599,19 @@ async function confirmarNuevo() {
 // ══════════════════════════════════════════════════════════
 // MODAL EDITAR PEDIDO
 // ══════════════════════════════════════════════════════════
-const modalEditarAbierto = ref(false);
-const pedidoEditando = ref<Pedido | null>(null);
-const lineasEditar = ref<LineaPedido[]>([]);
-const busquedaProductoEditar = ref("");
+const modalEditarAbierto      = ref(false);
+const pedidoEditando          = ref<Pedido | null>(null);
+const lineasEditar            = ref<LineaPedido[]>([]);
+const busquedaProductoEditar  = ref("");
 const resultadosProductoEditar = ref<Producto[]>([]);
 
 const formEditar = ref<{ FEC_ENT_PED: string; TUR_PED: Turno }>({
   FEC_ENT_PED: mananaISO(),
-  TUR_PED: Turno.MANANA,
+  TUR_PED:     Turno.MANANA,
 });
 
 const totalEditar = computed(() => {
-  const t = lineasEditar.value.reduce((acc, l) => acc + l.PRC_UNI * l.CAN, 0);
+  const t = lineasEditar.value.reduce((acc, l) => acc + l.PRC_UNI * (l.CAN ?? 0), 0);
   return t.toFixed(2);
 });
 
@@ -616,24 +619,24 @@ function abrirModalEditar(pedido: Pedido) {
   pedidoEditando.value = pedido;
   formEditar.value = {
     FEC_ENT_PED: pedido.FEC_ENT_PED.split("T")[0] ?? mananaISO(),
-    TUR_PED: pedido.TUR_PED as Turno,
+    TUR_PED:     pedido.TUR_PED as Turno,
   };
   lineasEditar.value = pedido.detalles.map((d) => ({
-    ID_PRD: d.ID_PRD,
-    NOM_PRD: d.NOM_PRD,
-    CAN: d.CAN,
-    PRC_UNI: parseFloat(d.PRC_UNI),
+    ID_PRD:       d.ID_PRD,
+    NOM_PRD:      d.NOM_PRD,
+    CAN:          d.CAN,
+    PRC_UNI:      parseFloat(d.PRC_UNI),
     precio_nuevo: false,
   }));
-  busquedaProductoEditar.value = "";
+  busquedaProductoEditar.value   = "";
   resultadosProductoEditar.value = [];
-  modalEditarAbierto.value = true;
+  modalEditarAbierto.value       = true;
 }
 
 function cerrarModalEditar() {
   modalEditarAbierto.value = false;
-  pedidoEditando.value = null;
-  lineasEditar.value = [];
+  pedidoEditando.value     = null;
+  lineasEditar.value       = [];
 }
 
 let debounceProductoEditar: ReturnType<typeof setTimeout>;
@@ -652,13 +655,13 @@ function onBuscarProductoEditar() {
 
 function agregarProductoEditar(prod: Producto) {
   lineasEditar.value.push({
-    ID_PRD: prod.ID_PRD,
-    NOM_PRD: prod.NOM_PRD,
-    CAN: 1,
-    PRC_UNI: parseFloat(prod.PRC_STD),
+    ID_PRD:       prod.ID_PRD,
+    NOM_PRD:      prod.NOM_PRD,
+    CAN:          1,
+    PRC_UNI:      parseFloat(prod.PRC_STD),
     precio_nuevo: true,
   });
-  busquedaProductoEditar.value = "";
+  busquedaProductoEditar.value   = "";
   resultadosProductoEditar.value = [];
 }
 
@@ -668,14 +671,15 @@ function quitarLineaEditar(index: number) {
 
 async function confirmarEditar() {
   if (!pedidoEditando.value || lineasEditar.value.length === 0) return;
+  if (!confirm('¿Confirmar los cambios en el pedido?')) return;
 
   const ok = await store.actualizar(pedidoEditando.value.ID_PED, {
     FEC_ENT_PED: formEditar.value.FEC_ENT_PED,
-    TUR_PED: formEditar.value.TUR_PED,
-    detalles: lineasEditar.value.map((l) => ({
-      ID_PRD: l.ID_PRD,
-      CAN: l.CAN,
-      PRC_UNI: l.PRC_UNI,
+    TUR_PED:     formEditar.value.TUR_PED,
+    detalles:    lineasEditar.value.map((l) => ({
+      ID_PRD:       l.ID_PRD,
+      CAN:          l.CAN as unknown as number,
+      PRC_UNI:      l.PRC_UNI,
       precio_nuevo: l.precio_nuevo,
     })),
   });
@@ -1198,6 +1202,12 @@ function badgeClass(estado: string) {
   min-width: 420px;
 }
 
+.linea-input--no-spin::-webkit-outer-spin-button,
+.linea-input--no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .linea-row:last-child {
   border-bottom: none;
 }
@@ -1238,11 +1248,13 @@ function badgeClass(estado: string) {
 }
 
 .lineas-header--nuevo {
-  grid-template-columns: 1fr 120px 90px;
+  grid-template-columns: minmax(140px, 1fr) 120px 90px 32px;
+  min-width: 420px;
 }
 
 .linea-row--nuevo-pedido {
-  grid-template-columns: 1fr 120px 90px;
+  grid-template-columns: minmax(140px, 1fr) 120px 90px 32px;
+  min-width: 420px;
 }
 
 .btn-remove {
